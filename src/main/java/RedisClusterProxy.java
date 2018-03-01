@@ -14,6 +14,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+/*******************************************************************************
+ * @date 2018-02-28 下午 5:45
+ * @author: <a href=mailto:huangyr@bonree.com>黄跃然</a>
+ * @Description:
+ ******************************************************************************/
 public class RedisClusterProxy implements JedisCommands, BasicCommands, Closeable {
 
     public static final short HASHSLOTS = 16384;

@@ -1,14 +1,12 @@
-import com.hyr.redis.help.RedisHelper;
 import com.hyr.redis.message.ResultMessage;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import redis.clients.jedis.*;
-import redis.clients.util.JedisClusterCRC16;
+import redis.clients.jedis.JedisPool;
 
-import java.util.*;
-
-import static org.junit.Assert.assertEquals;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 /*******************************************************************************
  * @date 2018-02-28 下午 5:45
@@ -107,6 +105,43 @@ public class TestRedisHelper {
         System.out.println(result1);
         boolean result2 = RedisClusterUtils.isKnownNode(jedisCluster, "41baecb1e1b9403a86qwfqwf8904");
         System.out.println(result2);
+    }
+
+    @Test
+    public void testFlushDB() {
+        boolean result = RedisClusterUtils.flushDB(jedisCluster);
+        System.out.println(result);
+    }
+
+    @Test
+    public void testSave() {
+        boolean result = RedisClusterUtils.save(jedisCluster);
+        System.out.println(result);
+    }
+
+
+    @Test
+    public void testLastSave() {
+        String result = RedisClusterUtils.lastSave(jedisCluster);
+        System.out.println(result);
+    }
+
+    @Test
+    public void testBgRewriteAof() {
+        boolean result = RedisClusterUtils.bgRewriteAof(jedisCluster);
+        System.out.println(result);
+    }
+
+    @Test
+    public void testSlaveOfNoOne() {
+        boolean result = RedisClusterUtils.slaveOfNoOne(jedisCluster);
+        System.out.println(result);
+    }
+
+    @Test
+    public void testBgSave() {
+        boolean result = RedisClusterUtils.bgSave(jedisCluster);
+        System.out.println(result);
     }
 
 

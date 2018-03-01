@@ -3,6 +3,7 @@ import com.hyr.redis.message.ResultMessage;
 import org.apache.commons.lang3.StringUtils;
 import redis.clients.jedis.*;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /*******************************************************************************
@@ -12,7 +13,7 @@ import java.util.*;
  ******************************************************************************/
 public class RedisClusterUtils {
 
-    private static RedisClusterProxy jedisCluster;
+    private static RedisClusterProxy jedisCluster = null;
 
     private RedisClusterUtils(RedisClusterProxy jedisCluster) {
         this.jedisCluster = jedisCluster;
@@ -24,7 +25,7 @@ public class RedisClusterUtils {
      * @param hostAndPortAddress split by ','
      * @return
      */
-    public static RedisClusterProxy getRedisClusterInstance(String hostAndPortAddress) {
+    static RedisClusterProxy getRedisClusterInstance(String hostAndPortAddress) {
         if (jedisCluster == null) {
             if (StringUtils.isEmpty(hostAndPortAddress)) {
                 return null;
@@ -57,18 +58,20 @@ public class RedisClusterUtils {
      * @param pattern
      * @return
      */
-    public static TreeSet<String> keys(RedisClusterProxy jedisCluster, String pattern) {
+    static TreeSet<String> keys(RedisClusterProxy jedisCluster, String pattern) {
         TreeSet<String> keys = new TreeSet<String>();
         Map<String, JedisPool> clusterNodes = jedisCluster.getClusterNodes();
-        for (String k : clusterNodes.keySet()) {
-            JedisPool jedisPool = clusterNodes.get(k);
-            Jedis jedis = jedisPool.getResource();
-            try {
-                keys.addAll(jedis.keys(pattern));
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                jedis.close();//用完一定要close这个链接！！！
+        for (String node : clusterNodes.keySet()) {
+            JedisPool jedisPool = clusterNodes.get(node);
+            if (jedisPool != null) {
+                Jedis jedis = jedisPool.getResource();
+                try {
+                    keys.addAll(jedis.keys(pattern));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    jedis.close();//用完一定要close这个链接！！！
+                }
             }
         }
         return keys;
@@ -80,19 +83,21 @@ public class RedisClusterUtils {
      * @param jedisCluster
      * @return
      */
-    public static String info(RedisClusterProxy jedisCluster) {
+    static String info(RedisClusterProxy jedisCluster) {
         Map<String, JedisPool> clusterNodes = jedisCluster.getClusterNodes();
         StringBuilder sb = new StringBuilder();
-        for (String k : clusterNodes.keySet()) {
-            JedisPool jedisPool = clusterNodes.get(k);
-            Jedis jedis = jedisPool.getResource();
-            try {
-                String info = jedis.info();
-                sb.append(info).append("=====================================================\n").append("\n");
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                jedis.close();
+        for (String node : clusterNodes.keySet()) {
+            JedisPool jedisPool = clusterNodes.get(node);
+            if (jedisPool != null) {
+                Jedis jedis = jedisPool.getResource();
+                try {
+                    String info = jedis.info();
+                    sb.append(info).append("=====================================================\n").append("\n");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    jedis.close();
+                }
             }
         }
         return sb.toString();
@@ -104,19 +109,21 @@ public class RedisClusterUtils {
      * @param jedisCluster
      * @return
      */
-    public static String nodes(RedisClusterProxy jedisCluster) {
+    static String nodes(RedisClusterProxy jedisCluster) {
         Map<String, JedisPool> clusterNodes = jedisCluster.getClusterNodes();
         StringBuilder sb = new StringBuilder();
-        for (String k : clusterNodes.keySet()) {
-            JedisPool jedisPool = clusterNodes.get(k);
-            Jedis jedis = jedisPool.getResource();
-            try {
-                String info = jedis.clusterNodes();
-                sb.append(info).append("=====================================================\n").append("\n");
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                jedis.close();//用完一定要close这个链接！！！
+        for (String node : clusterNodes.keySet()) {
+            JedisPool jedisPool = clusterNodes.get(node);
+            if (jedisPool != null) {
+                Jedis jedis = jedisPool.getResource();
+                try {
+                    String info = jedis.clusterNodes();
+                    sb.append(info).append("=====================================================\n").append("\n");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    jedis.close();//用完一定要close这个链接！！！
+                }
             }
         }
         return sb.toString();
@@ -128,7 +135,7 @@ public class RedisClusterUtils {
      * @param jedisCluster
      * @return
      */
-    public static String call(RedisClusterProxy jedisCluster, String script) {
+    static String call(RedisClusterProxy jedisCluster, String script) {
         try {
             JedisSlotBasedConnectionHandlerProxy connectionHandler = jedisCluster.getConnectionHandler();
             Jedis redis = connectionHandler.getConnection();
@@ -239,19 +246,21 @@ public class RedisClusterUtils {
         StringBuilder sb = new StringBuilder();
         for (String node : clusterNodes.keySet()) {
             JedisPool jedisPool = clusterNodes.get(node);
-            Jedis jedis = jedisPool.getResource();
-            try {
-                if (!jedis.ping().equals("PONG")) {
-                    result = false;
-                    sb.append(RedisHelper.getNodeId(jedis.clusterNodes()));
-                    sb.append("\n");
+            if (jedisPool != null) {
+                Jedis jedis = jedisPool.getResource();
+                try {
+                    if (!jedis.ping().equals("PONG")) {
+                        result = false;
+                        sb.append(RedisHelper.getNodeId(jedis.clusterNodes()));
+                        sb.append("\n");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    resultMessage.setResult(false);
+                    resultMessage.setInfo(e.toString());
+                } finally {
+                    jedis.close();//用完一定要close这个链接！！！
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                resultMessage.setResult(false);
-                resultMessage.setInfo(e.toString());
-            } finally {
-                jedis.close();//用完一定要close这个链接！！！
             }
         }
         resultMessage.setResult(result);
@@ -268,7 +277,7 @@ public class RedisClusterUtils {
      * @param jedisCluster
      * @return key
      */
-    public static String randomKey(RedisClusterProxy jedisCluster) {
+    static String randomKey(RedisClusterProxy jedisCluster) {
         Map<String, JedisPool> clusterNodes = jedisCluster.getClusterNodes();
         Object[] hostAndPorts = clusterNodes.keySet().toArray();
         int randNum = new Random().nextInt(clusterNodes.size() - 1);
@@ -288,23 +297,25 @@ public class RedisClusterUtils {
      * @param nodeId
      * @return result
      */
-    public static boolean isKnownNode(RedisClusterProxy redisClusterProxy, String nodeId) {
+    static boolean isKnownNode(RedisClusterProxy redisClusterProxy, String nodeId) {
         boolean result = false;
         Map<String, JedisPool> clusterNodes = redisClusterProxy.getClusterNodes();
 
         for (String node : clusterNodes.keySet()) {
             JedisPool jedisPool = clusterNodes.get(node);
-            String nodesInfo = jedisPool.getResource().clusterNodes();
-            for (String infoLine : nodesInfo.split("\n")) {
-                for (String info : infoLine.split(" ")) {
-                    if (info.equals(nodeId)) {
-                        result = true;
-                        break;
+            if (jedisPool != null) {
+                String nodesInfo = jedisPool.getResource().clusterNodes();
+                for (String infoLine : nodesInfo.split("\n")) {
+                    for (String info : infoLine.split(" ")) {
+                        System.out.println(info);
+                        if (info.equals(nodeId)) {
+                            result = true;
+                            break;
+                        }
                     }
                 }
             }
         }
-
         return result;
     }
 
@@ -316,10 +327,198 @@ public class RedisClusterUtils {
      * @param port
      * @return
      */
-    public static boolean isKnownNode(RedisClusterProxy jedisCluster, String host, int port) {
+    static boolean isKnownNode(RedisClusterProxy jedisCluster, String host, int port) {
         Jedis redis = new Jedis(host, port);
         String nodeId = RedisHelper.getNodeId(redis.clusterNodes());
         return isKnownNode(jedisCluster, nodeId);
-
     }
+
+    /**
+     * command : flushdb
+     *
+     * @param redisClusterProxy
+     * @return
+     */
+    static boolean flushDB(RedisClusterProxy redisClusterProxy) {
+        boolean result = true;
+        Map<String, JedisPool> clusterNodes = redisClusterProxy.getClusterNodes();
+        for (String node : clusterNodes.keySet()) {
+            Jedis redis = null;
+            try {
+                JedisPool jedisPool = clusterNodes.get(node);
+                if (jedisPool != null) {
+                    redis = jedisPool.getResource();
+                    String nodesInfo = redis.info();
+                    if (nodesInfo.contains("role:master")) {
+                        redis.flushDB();
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                result = false;
+            } finally {
+                if (redis != null) {
+                    redis.close();
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * command : save
+     *
+     * @param redisClusterProxy
+     * @return
+     */
+    static boolean save(RedisClusterProxy redisClusterProxy) {
+        boolean result = true;
+        Map<String, JedisPool> clusterNodes = redisClusterProxy.getClusterNodes();
+        for (String node : clusterNodes.keySet()) {
+            Jedis redis = null;
+            try {
+                JedisPool jedisPool = clusterNodes.get(node);
+                if (jedisPool != null) {
+                    redis = jedisPool.getResource();
+                    redis.save();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                result = false;
+            } finally {
+                if (redis != null) {
+                    redis.close();
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * command : last save
+     *
+     * @param redisClusterProxy
+     * @return
+     */
+    static String lastSave(RedisClusterProxy redisClusterProxy) {
+        StringBuilder sb = new StringBuilder();
+        Map<String, JedisPool> clusterNodes = redisClusterProxy.getClusterNodes();
+        for (String node : clusterNodes.keySet()) {
+            Jedis redis = null;
+            try {
+                JedisPool jedisPool = clusterNodes.get(node);
+                if (jedisPool != null) {
+                    redis = jedisPool.getResource();
+                    Long lastSaveTime = redis.lastsave();
+                    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    String time = format.format(new Date(lastSaveTime));
+                    for (String infoLine : redis.clusterNodes().split("\n")) {
+                        if (infoLine.contains("myself")) {
+                            String[] infos = infoLine.split(" ");
+                            sb.append(infos[0]).append("\t").append(infos[1]).append("\t").append(time).append("\n");
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (redis != null) {
+                    redis.close();
+                }
+            }
+
+        }
+        return sb.toString();
+    }
+
+    /**
+     * command : background rewrite aof file
+     *
+     * @param redisClusterProxy
+     * @return
+     */
+    static boolean bgRewriteAof(RedisClusterProxy redisClusterProxy) {
+        boolean result = true;
+        Map<String, JedisPool> clusterNodes = redisClusterProxy.getClusterNodes();
+        for (String node : clusterNodes.keySet()) {
+            Jedis redis = null;
+            try {
+                JedisPool jedisPool = clusterNodes.get(node);
+                if (jedisPool != null) {
+                    redis = jedisPool.getResource();
+                    redis.bgrewriteaof();
+                }
+            } catch (Exception e) {
+                result = false;
+                e.printStackTrace();
+            } finally {
+                if (redis != null) {
+                    redis.close();
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * canceling the primary server Association, close slave copy. it not allowed in cluster .
+     *
+     * @param redisClusterProxy
+     * @return
+     */
+    @Deprecated
+    static boolean slaveOfNoOne(RedisClusterProxy redisClusterProxy) {
+        boolean result = true;
+        Map<String, JedisPool> clusterNodes = redisClusterProxy.getClusterNodes();
+        for (String node : clusterNodes.keySet()) {
+            Jedis redis = null;
+            try {
+                JedisPool jedisPool = clusterNodes.get(node);
+                if (jedisPool != null) {
+                    redis = jedisPool.getResource();
+                    redis.slaveofNoOne();
+                }
+            } catch (Exception e) {
+                result = false;
+                e.printStackTrace();
+            } finally {
+                if (redis != null) {
+                    redis.close();
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * command : background save
+     *
+     * @param redisClusterProxy
+     * @return
+     */
+    static boolean bgSave(RedisClusterProxy redisClusterProxy) {
+        boolean result = true;
+        Map<String, JedisPool> clusterNodes = redisClusterProxy.getClusterNodes();
+        for (String node : clusterNodes.keySet()) {
+            Jedis redis = null;
+            try {
+                JedisPool jedisPool = clusterNodes.get(node);
+                if (jedisPool != null) {
+                    redis = jedisPool.getResource();
+                    redis.bgsave();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                result = false;
+            } finally {
+                if (redis != null) {
+                    redis.close();
+                }
+            }
+        }
+        return result;
+    }
+
+
 }
+

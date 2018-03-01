@@ -2,6 +2,7 @@ import com.hyr.redis.help.RedisHelper;
 import com.hyr.redis.message.ResultMessage;
 import org.apache.commons.lang3.StringUtils;
 import redis.clients.jedis.*;
+import redis.clients.util.JedisClusterCRC16;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -514,6 +515,32 @@ public class RedisClusterUtils {
                 if (redis != null) {
                     redis.close();
                 }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * command : debug
+     *
+     * @param redisClusterProxy
+     * @param pattern
+     * @return
+     */
+    static String debug(RedisClusterProxy redisClusterProxy, String pattern) {
+        String result;
+        Jedis redis = null;
+        try {
+            JedisSlotBasedConnectionHandlerProxy connectionHandler = redisClusterProxy.getConnectionHandler();
+            int slot = JedisClusterCRC16.getSlot(pattern);
+            redis = connectionHandler.getConnectionFromSlot(slot);
+            result = redis.debug(DebugParams.OBJECT(pattern));
+        } catch (Exception e) {
+            e.printStackTrace();
+            result = "debug fail ! " + e.getMessage();
+        } finally {
+            if (redis != null) {
+                redis.close();
             }
         }
         return result;

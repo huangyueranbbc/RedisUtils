@@ -144,5 +144,10 @@ public class TestRedisHelper {
         System.out.println(result);
     }
 
+    @Test
+    public void testDebug() {
+        String result = RedisClusterUtils.debug(jedisCluster, "a1");
+        System.out.println(result);
+    }
 
 }

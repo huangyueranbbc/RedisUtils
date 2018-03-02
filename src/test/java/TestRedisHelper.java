@@ -119,7 +119,6 @@ public class TestRedisHelper {
         System.out.println(result);
     }
 
-
     @Test
     public void testLastSave() {
         String result = RedisClusterUtils.lastSave(jedisCluster);
@@ -149,5 +148,30 @@ public class TestRedisHelper {
         String result = RedisClusterUtils.debug(jedisCluster, "a1");
         System.out.println(result);
     }
+
+    @Test
+    public void testDelSlots() {
+        ResultMessage resultMessage = RedisClusterUtils.delSlots(jedisCluster, 0, 65535);
+        System.out.println(resultMessage);
+    }
+
+    @Test
+    public void testAddSlots() {
+        ResultMessage resultMessage = RedisClusterUtils.addSlots(jedisCluster, 0, 65535);
+        System.out.println(resultMessage);
+    }
+
+    @Test
+    public void testMeet() {
+        ResultMessage result = RedisClusterUtils.meet(jedisCluster, "127.0.0.1", 7005);
+        System.out.println(result);
+    }
+
+    @Test
+    public void testForget() {
+        ResultMessage result = RedisClusterUtils.forget(jedisCluster, "3af9bc9fff7c87f6b9b5753b504d55a5c2307383");
+        System.out.println(result);
+    }
+
 
 }

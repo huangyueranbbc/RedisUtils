@@ -4,6 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 import redis.clients.jedis.*;
 import redis.clients.util.JedisClusterCRC16;
 
+import javax.xml.transform.Result;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -71,7 +72,9 @@ public class RedisClusterUtils {
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
-                    jedis.close();//用完一定要close这个链接！！！
+                    if (jedis != null) {
+                        jedis.close();
+                    }
                 }
             }
         }
@@ -97,7 +100,9 @@ public class RedisClusterUtils {
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
-                    jedis.close();
+                    if (jedis != null) {
+                        jedis.close();
+                    }
                 }
             }
         }
@@ -123,7 +128,9 @@ public class RedisClusterUtils {
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
-                    jedis.close();//用完一定要close这个链接！！！
+                    if (jedis != null) {
+                        jedis.close();//用完一定要close这个链接！！！
+                    }
                 }
             }
         }
@@ -244,7 +251,7 @@ public class RedisClusterUtils {
         ResultMessage resultMessage = ResultMessage.buildOK();
         boolean result = true;
         Map<String, JedisPool> clusterNodes = jedisCluster.getClusterNodes();
-        StringBuilder sb = new StringBuilder();
+        List<String> errorInfo = new ArrayList<String>();
         for (String node : clusterNodes.keySet()) {
             JedisPool jedisPool = clusterNodes.get(node);
             if (jedisPool != null) {
@@ -252,22 +259,22 @@ public class RedisClusterUtils {
                 try {
                     if (!jedis.ping().equals("PONG")) {
                         result = false;
-                        sb.append(RedisHelper.getNodeId(jedis.clusterNodes()));
-                        sb.append("\n");
+                        errorInfo.add(RedisHelper.getNodeId(jedis.clusterNodes()) + "is failed!");
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
                     resultMessage.setResult(false);
-                    resultMessage.setInfo(e.toString());
+                    resultMessage.setInfos(e.getMessage());
+                    e.printStackTrace();
                 } finally {
-                    jedis.close();//用完一定要close这个链接！！！
+                    if (jedis != null) {
+                        jedis.close();
+                    }
                 }
             }
         }
         resultMessage.setResult(result);
         if (!result) {
-            sb.append("is fail");
-            resultMessage.setInfo(sb.toString());
+            resultMessage.setInfos(errorInfo);
         }
         return resultMessage;
     }
@@ -545,6 +552,143 @@ public class RedisClusterUtils {
         }
         return result;
     }
+
+    /**
+     * command : delslots
+     *
+     * @param redisClusterProxy
+     * @param slots
+     * @return
+     */
+    static ResultMessage delSlots(RedisClusterProxy redisClusterProxy, Integer... slots) {
+        ResultMessage result = ResultMessage.buildOK();
+        Jedis target = null;
+        JedisSlotBasedConnectionHandlerProxy connectionHandler = redisClusterProxy.getConnectionHandler();
+        if (slots == null || slots.length < 1) {
+            return ResultMessage.build(false, "slots is null");
+        }
+        List<String> errorInfo = new ArrayList<String>();
+        for (Integer slot : slots) {
+            try {
+                target = connectionHandler.getConnectionFromSlot(slot);
+                target.clusterDelSlots(slot);
+            } catch (Exception e) {
+                errorInfo.add(slot + " is failed !\t" + e.getMessage());
+            } finally {
+                if (target != null && target.isConnected()) {
+                    target.close();
+                }
+            }
+        }
+        if (errorInfo.size() > 0) {
+            result.setResult(false);
+            result.setInfos(errorInfo);
+        }
+        return result;
+    }
+
+    /**
+     * command : addSlots
+     *
+     * @param redisClusterProxy
+     * @param slots
+     * @return
+     */
+    static ResultMessage addSlots(RedisClusterProxy redisClusterProxy, Integer... slots) {
+        ResultMessage result = ResultMessage.buildOK();
+        Jedis target = null;
+        JedisSlotBasedConnectionHandlerProxy connectionHandler = redisClusterProxy.getConnectionHandler();
+        if (slots == null || slots.length < 1) {
+            return ResultMessage.build(false, "slots is null");
+        }
+        List<String> errorInfo = new ArrayList<String>();
+        for (Integer slot : slots) {
+            try {
+                target = connectionHandler.getConnectionFromSlot(slot);
+                target.clusterAddSlots(slot);
+            } catch (Exception e) {
+                errorInfo.add(slot + " is failed !\t" + e.getMessage());
+            } finally {
+                if (target != null && target.isConnected()) {
+                    target.close();
+                }
+            }
+        }
+        if (errorInfo.size() > 0) {
+            result.setResult(false);
+            result.setInfos(errorInfo);
+        }
+        return result;
+    }
+
+    /**
+     * command : meet
+     *
+     * @param redisClusterProxy
+     * @param host
+     * @param port
+     * @return
+     */
+    static ResultMessage meet(RedisClusterProxy redisClusterProxy, String host, Integer port) {
+        ResultMessage resultMessage = ResultMessage.buildOK();
+        Jedis target = null;
+        try {
+            JedisSlotBasedConnectionHandlerProxy connectionHandler = redisClusterProxy.getConnectionHandler();
+            Map<String, JedisPool> jedisPools = connectionHandler.getNodes();
+            Iterator<JedisPool> i$ = jedisPools.values().iterator();
+            for (; i$.hasNext(); ) {
+                JedisPool jedisPool = i$.next();
+                target = jedisPool.getResource();
+                target.clusterMeet(host, port);
+                target.close();
+            }
+        } catch (Exception e) {
+            if (target != null) {
+                target.close();
+            }
+            resultMessage.setResult(false);
+            resultMessage.setInfos(e.getMessage());
+        }
+        return resultMessage;
+    }
+
+    /**
+     * command : forget
+     *
+     * @param redisClusterProxy
+     * @param nodeId
+     * @return
+     */
+    static ResultMessage forget(RedisClusterProxy redisClusterProxy, String nodeId) {
+        ResultMessage resultMessage = ResultMessage.buildOK();
+        Jedis target = null;
+        try {
+            JedisSlotBasedConnectionHandlerProxy connectionHandler = redisClusterProxy.getConnectionHandler();
+            Map<String, JedisPool> jedisPools = connectionHandler.getNodes();
+            Iterator<JedisPool> i$ = jedisPools.values().iterator();
+            for (; i$.hasNext(); ) {
+                JedisPool jedisPool = i$.next();
+                if (!RedisHelper.getNodeId(jedisPool.getResource().clusterNodes()).equals(nodeId)) { // not del selt
+                    target = jedisPool.getResource();
+                    target.clusterForget(nodeId);
+                }
+            }
+        } catch (Exception e) {
+            resultMessage.setResult(false);
+            resultMessage.setInfos(e.getMessage());
+        } finally {
+            if (target != null) {
+                target.close();
+            }
+        }
+        return resultMessage;
+    }
+
+
+    //Import
+
+
+    //Migrating
 
 
 }

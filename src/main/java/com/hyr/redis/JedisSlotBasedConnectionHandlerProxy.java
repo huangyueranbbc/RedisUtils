@@ -1,3 +1,5 @@
+package com.hyr.redis;
+
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisSlotBasedConnectionHandler;

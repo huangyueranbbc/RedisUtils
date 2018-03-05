@@ -7,11 +7,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.Transaction;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 /*******************************************************************************
  * @date 2018-02-28 下午 5:45
@@ -26,7 +24,8 @@ public class TestRedisHelper {
 
     @Before
     public synchronized void before() {
-        jedisCluster = RedisClusterUtils.getRedisClusterInstance("127.0.0.1:7001,127.0.0.1:7002,127.0.0.1:7003,127.0.0.1:7004,127.0.0.1:7005,127.0.0.1:7006");
+        //jedisCluster = RedisClusterUtils.getRedisClusterInstance("127.0.0.1:7001,127.0.0.1:7002,127.0.0.1:7003,127.0.0.1:7004,127.0.0.1:7005,127.0.0.1:7006");
+        jedisCluster = RedisClusterUtils.getRedisClusterInstance("127.0.0.1:7001,127.0.0.1:7002,127.0.0.1:7003");
         Map<String, JedisPool> clusterNodes = jedisCluster.getClusterNodes();
         Set<String> hostAndPorts = clusterNodes.keySet();
         log.info(hostAndPorts);
@@ -57,32 +56,32 @@ public class TestRedisHelper {
         System.out.println(result);
     }
 
-//    @Test
-//    public void testTransaction() {
-//        boolean result = RedisClusterUtils.transaction(jedisCluster, new RedisClusterUtils.RedisCallBack() {
-//
-//            protected List<String> setKey() {
-//                List<String> keys = new ArrayList<String>(); // set all keys to allot slot
-//                keys.add("a4");
-//                keys.add("a5");
-//                keys.add("a6");
-//                return keys;
-//            }
-//
-//            void OnMultiAndExecListener(Transaction transaction) {
-//                try {
-////                    transaction.set("a1", "b5");
-////                    transaction.set("a2", "b2");
-////                    transaction.set("a3", "b3");
-//                }catch (Exception e){
-//                    e.printStackTrace();
-//                }
-//
-//            }
-//        });
-//        System.out.println(result);
-//
-//    }
+    @Test
+    public void testTransaction() {
+        boolean result = RedisClusterUtils.transaction(jedisCluster, new RedisClusterUtils.RedisCallBack() {
+
+            public List<String> setKey() {
+                List<String> keys = new ArrayList<String>(); // set all keys to allot slot
+                keys.add("a1");
+                keys.add("a2");
+                keys.add("a3");
+                return keys;
+            }
+
+            public void OnMultiAndExecListener(Transaction transaction) {
+                try {
+                    transaction.set("a1", "b5");
+                    transaction.set("a2", "b2");
+                    transaction.set("a3", "b3");
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+
+            }
+        });
+        System.out.println(result);
+
+    }
 
     @Test
     public void testCall() {
@@ -187,7 +186,7 @@ public class TestRedisHelper {
 
     @Test
     public void testMoveSlot() {
-        boolean result = RedisClusterUtils.moveSlot(jedisCluster, 2888, "127.0.0.1:7001", "127.0.0.1:7003");
+        boolean result = RedisClusterUtils.moveSlot(jedisCluster, 7785, "127.0.0.1:7002", "127.0.0.1:7003");
         System.out.println(result);
     }
 

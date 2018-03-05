@@ -4,10 +4,7 @@ import com.hyr.redis.help.RedisHelper;
 import com.hyr.redis.message.ResultMessage;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
-import redis.clients.jedis.DebugParams;
-import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.*;
 import redis.clients.util.JedisClusterCRC16;
 
 import java.text.SimpleDateFormat;
@@ -170,87 +167,98 @@ public class RedisClusterUtils {
         return null;
     }
 
-//    /**
-//     * command : multi exec
-//     *
-//     * @param jedisCluster
-//     * @return
-//     */
-//    public static synchronized boolean transaction(RedisClusterProxy jedisCluster, RedisCallBack redisCallBack) {
-//        boolean result = true;
-//        Jedis redis = null;
-//        try {
-//            JedisSlotBasedConnectionHandlerProxy connectionHandler = jedisCluster.getConnectionHandler();
-//
-//            redis = connectionHandler.getConnection();
-//
-//            // TODO 改为可以识别散列方法
-//            // TODO 可以优化为动态代理
-//            result = redisCallBack.MultiAndExec(redis);
-//
-//        } catch (Exception e) {
-//            result = false;
-//            e.printStackTrace();
-//        } finally {
-//            if (redis != null) {
-//                redis.close();
-//            }
-//        }
-//        return result;
-//    }
-//
-//    abstract public static synchronized class RedisCallBack {
-//
-//        boolean MultiAndExec(Jedis redis) {
-//            boolean result = true;
-//            try {
-//                List<String> keys = setKey();
-//                //allotSlot(redis, keys);
-//                Pipeline pipelined = redis.pipelined();
-//                pipelined.multi();
-//                pipelined.set("a7", "c4");
-//                pipelined.set("a8", "c5");
-//                pipelined.set("a9", "c6");
-//                //OnMultiAndExecListener(redis.multi());
-//                pipelined.exec();
-//                pipelined.sync();
-//            } catch (Exception e) {
-//                result = false;
-//                e.printStackTrace();
-//            }
-//            return result;
-//        }
-//
-//        /**
-//         * allot slot by key
-//         *
-//         * @param redis
-//         * @param keys
-//         */
-//        void allotSlot(Jedis redis, List<String> keys) {
-//            try {
-//                for (String key : keys) {
-//                    System.out.println(key);
-//                    Integer slot;
-//                    slot = JedisClusterCRC16.getSlot(key);
-//                    System.out.println(slot);
-//                    String s = redis.clusterDelSlots(slot);
-//                    String s1 = redis.clusterAddSlots(slot);
-//                }
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        }
-//
-//        /**
-//         * set all keys to allot slot
-//         *
-//         * @return keys
-//         */
-//        abstract List<String> setKey();
-//
-//        abstract void OnMultiAndExecListener(Transaction transaction);
-//    }
+    /**
+     * command : multi exec
+     *
+     * @param jedisCluster
+     * @return
+     */
+    public static synchronized boolean transaction(RedisClusterProxy jedisCluster, RedisCallBack redisCallBack) {
+        boolean result = true;
+        Jedis redis = null;
+        try {
+            JedisSlotBasedConnectionHandlerProxy connectionHandler = jedisCluster.getConnectionHandler();
+
+            redis = connectionHandler.getConnection();
+
+            // TODO 改为可以识别散列方法
+            // TODO 可以优化为动态代理
+            result = redisCallBack.MultiAndExec(redis, connectionHandler);
+
+        } catch (Exception e) {
+            result = false;
+            e.printStackTrace();
+        } finally {
+            if (redis != null) {
+                redis.close();
+            }
+        }
+        return result;
+    }
+
+    abstract public static class RedisCallBack {
+
+        boolean MultiAndExec(Jedis redis, JedisSlotBasedConnectionHandlerProxy connectionHandler) {
+            boolean result = true;
+            try {
+                List<String> keys = setKey();
+                allotSlot(redis, keys, connectionHandler);
+                redis.asking();
+                Transaction transaction = redis.multi();
+                OnMultiAndExecListener(transaction);
+                transaction.exec();
+            } catch (Exception e) {
+                result = false;
+                e.printStackTrace();
+            }
+            return result;
+        }
+
+        /**
+         * allot slot by key
+         *
+         * @param redis
+         * @param keys
+         * @param connectionHandler
+         */
+        void allotSlot(Jedis redis, List<String> keys, JedisSlotBasedConnectionHandlerProxy connectionHandler) {
+            try {
+                for (String key : keys) {
+                    System.out.println(key);
+                    Integer slot;
+                    slot = JedisClusterCRC16.getSlot(key);
+                    System.out.println(slot);
+
+                    Jedis s$ = connectionHandler.getConnectionFromSlot(slot);
+                    if (s$ == null || !s$.isConnected() || redis == null || !redis.isConnected()) {
+                        logger.warn(s$ + " is cloesd ! or" + redis + " is closed !");
+                        return;
+                    }
+
+                    if (!RedisHelper.getNodeId(s$.clusterNodes()).equals(RedisHelper.getNodeId(redis.clusterNodes()))) {
+                        String r1$ = redis.clusterSetSlotImporting(slot, RedisHelper.getNodeId(s$.clusterNodes()));
+                        logger.info("importing is " + r1$ + "!");
+                        String r2$ = s$.clusterSetSlotMigrating(slot, RedisHelper.getNodeId(redis.clusterNodes()));
+                        logger.info("migrating is " + r2$ + "!");
+                    } else {
+                        logger.info("不用移动!");
+                    }
+
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        /**
+         * set all keys to allot slot
+         *
+         * @return keys
+         */
+        public abstract List<String> setKey();
+
+        public abstract void OnMultiAndExecListener(Transaction transaction);
+    }
 
     /**
      * command : ping
@@ -378,7 +386,7 @@ public class RedisClusterUtils {
                     redis = jedisPool.getResource();
                     String nodesInfo = redis.info();
                     if (nodesInfo.contains("role:master")) {
-                        redis.flushDB();
+                        redis.flushAll();
                     }
                 }
             } catch (Exception e) {

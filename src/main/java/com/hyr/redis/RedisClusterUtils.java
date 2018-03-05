@@ -174,7 +174,7 @@ public class RedisClusterUtils {
      * @return
      */
     public static synchronized boolean transaction(RedisClusterProxy jedisCluster, RedisCallBack redisCallBack) {
-        boolean result = true;
+        boolean result;
         Jedis redis = null;
         try {
             JedisSlotBasedConnectionHandlerProxy connectionHandler = jedisCluster.getConnectionHandler();
@@ -224,10 +224,8 @@ public class RedisClusterUtils {
         void allotSlot(Jedis redis, List<String> keys, JedisSlotBasedConnectionHandlerProxy connectionHandler) {
             try {
                 for (String key : keys) {
-                    System.out.println(key);
                     Integer slot;
                     slot = JedisClusterCRC16.getSlot(key);
-                    System.out.println(slot);
 
                     Jedis s$ = connectionHandler.getConnectionFromSlot(slot);
                     if (s$ == null || !s$.isConnected() || redis == null || !redis.isConnected()) {
@@ -240,8 +238,6 @@ public class RedisClusterUtils {
                         logger.info("importing is " + r1$ + "!");
                         String r2$ = s$.clusterSetSlotMigrating(slot, RedisHelper.getNodeId(redis.clusterNodes()));
                         logger.info("migrating is " + r2$ + "!");
-                    } else {
-                        logger.info("不用移动!");
                     }
 
                 }

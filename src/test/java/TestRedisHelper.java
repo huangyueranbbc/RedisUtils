@@ -73,7 +73,7 @@ public class TestRedisHelper {
                     transaction.set("a1", "b5");
                     transaction.set("a2", "b2");
                     transaction.set("a3", "b3");
-                }catch (Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
 
@@ -198,6 +198,12 @@ public class TestRedisHelper {
     @Test
     public void testClusterSlots() {
         List<NodeSlots> result = RedisClusterUtils.slots(jedisCluster);
+        System.out.println(result);
+    }
+
+    @Test
+    public void testSlotsStable() {
+        boolean result = RedisClusterUtils.slotsStable(jedisCluster, 7785);
         System.out.println(result);
     }
 

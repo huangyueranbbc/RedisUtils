@@ -135,7 +135,7 @@ public class RedisClusterUtils {
                         }
                     }
                 } catch (Exception e) {
-                    logger.error("cluster nodes is error", e);
+                    logger.error("cluster nodes is error.", e);
                 } finally {
                     if (jedis != null) {
                         jedis.close();//用完一定要close这个链接！！！
@@ -162,7 +162,7 @@ public class RedisClusterUtils {
                 return (String) list.get(0);
             }
         } catch (Exception e) {
-            logger.error("cluster call is error", e);
+            logger.error("cluster call is error.", e);
         }
         return null;
     }
@@ -287,7 +287,7 @@ public class RedisClusterUtils {
                 } catch (Exception e) {
                     resultMessage.setResult(false);
                     resultMessage.setInfos(e.getMessage());
-                    logger.error("cluster ping is error", e);
+                    logger.error("cluster ping is error.", e);
                 } finally {
                     if (jedis != null) {
                         jedis.close();
@@ -395,7 +395,7 @@ public class RedisClusterUtils {
                 }
             } catch (Exception e) {
                 result = false;
-                logger.error("cluster flushDB is error", e);
+                logger.error("cluster flushDB is error.", e);
             } finally {
                 if (redis != null) {
                     redis.close();
@@ -423,7 +423,7 @@ public class RedisClusterUtils {
                     redis.save();
                 }
             } catch (Exception e) {
-                logger.error("cluster save is error", e);
+                logger.error("cluster save is error.", e);
                 result = false;
             } finally {
                 if (redis != null) {
@@ -460,7 +460,7 @@ public class RedisClusterUtils {
                     }
                 }
             } catch (Exception e) {
-                logger.error("cluster lastSave is error", e);
+                logger.error("cluster lastSave is error.", e);
             } finally {
                 if (redis != null) {
                     redis.close();
@@ -490,7 +490,7 @@ public class RedisClusterUtils {
                 }
             } catch (Exception e) {
                 result = false;
-                logger.error("cluster bgRewriteAof is error", e);
+                logger.error("cluster bgRewriteAof is error.", e);
             } finally {
                 if (redis != null) {
                     redis.close();
@@ -520,7 +520,7 @@ public class RedisClusterUtils {
                 }
             } catch (Exception e) {
                 result = false;
-                logger.error("cluster slaveOfNoOne is error", e);
+                logger.error("cluster slaveOfNoOne is error.", e);
             } finally {
                 if (redis != null) {
                     redis.close();
@@ -549,7 +549,7 @@ public class RedisClusterUtils {
                 }
             } catch (Exception e) {
                 result = false;
-                logger.error("cluster bgSave is error", e);
+                logger.error("cluster bgSave is error.", e);
             } finally {
                 if (redis != null) {
                     redis.close();
@@ -576,7 +576,7 @@ public class RedisClusterUtils {
             result = redis.debug(DebugParams.OBJECT(pattern));
         } catch (Exception e) {
             result = "debug fail ! " + e.getMessage();
-            logger.error("cluster debug is error", e);
+            logger.error("cluster debug is error.", e);
         } finally {
             if (redis != null) {
                 redis.close();
@@ -606,7 +606,7 @@ public class RedisClusterUtils {
                 target.clusterDelSlots(slot);
             } catch (Exception e) {
                 errorInfo.add(slot + " is failed !\t" + e.getMessage());
-                logger.error("cluster delSlots is error", e);
+                logger.error("cluster delSlots is error.", e);
             } finally {
                 if (target != null && target.isConnected()) {
                     target.close();
@@ -641,7 +641,7 @@ public class RedisClusterUtils {
                 target.clusterAddSlots(slot);
             } catch (Exception e) {
                 errorInfo.add(slot + " is failed !\t" + e.getMessage());
-                logger.error("cluster addSlots is error", e);
+                logger.error("cluster addSlots is error.", e);
             } finally {
                 if (target != null && target.isConnected()) {
                     target.close();
@@ -682,7 +682,7 @@ public class RedisClusterUtils {
             }
             resultMessage.setResult(false);
             resultMessage.setInfos(e.getMessage());
-            logger.error("cluster meet is error", e);
+            logger.error("cluster meet is error.", e);
         }
         return resultMessage;
     }
@@ -711,7 +711,7 @@ public class RedisClusterUtils {
         } catch (Exception e) {
             resultMessage.setResult(false);
             resultMessage.setInfos(e.getMessage());
-            logger.error("cluster forget is error", e);
+            logger.error("cluster forget is error.", e);
         } finally {
             if (target != null) {
                 target.close();
@@ -774,7 +774,7 @@ public class RedisClusterUtils {
             logger.info("migrating is " + r2$ + "!");
         } catch (Exception e) {
             result = false;
-            logger.error("cluster moveSlot is error", e);
+            logger.error("cluster moveSlot is error.", e);
         }
         return result;
     }
@@ -800,7 +800,7 @@ public class RedisClusterUtils {
             t$.getResource().clusterReplicate(RedisHelper.getNodeId(s$.getResource().clusterNodes()));
         } catch (Exception e) {
             result = false;
-            logger.error("cluster replicate is error", e);
+            logger.error("cluster replicate is error.", e);
         }
         return result;
     }
@@ -823,10 +823,35 @@ public class RedisClusterUtils {
                 nodeSlots.add(new NodeSlots((Long) list.get(0), (Long) list.get(1), new String((byte[]) master.get(0)), (Long) master.get(1)));
             }
         } catch (Exception e) {
-            logger.error("cluster slots is error", e);
+            logger.error("cluster slots is error.", e);
             return null;
         }
         return nodeSlots;
+    }
+
+    /**
+     * command : setslot stable
+     *
+     * @param jedisCluster
+     * @return
+     */
+    public static synchronized boolean slotsStable(RedisClusterProxy jedisCluster, Integer... slots) {
+        boolean result = true;
+        try {
+            Map<String, JedisPool> clusterNodes = jedisCluster.getClusterNodes();
+            for (String node : clusterNodes.keySet()) {
+                JedisPool i$ = clusterNodes.get(node);
+                Jedis redis = i$.getResource();
+                for (Integer slot : slots) {
+                    redis.clusterSetSlotStable(slot);
+                }
+            }
+        } catch (Exception e) {
+            result = false;
+            logger.error("cluster setslots stable is error.",e);
+        }
+
+        return result;
     }
 
 }

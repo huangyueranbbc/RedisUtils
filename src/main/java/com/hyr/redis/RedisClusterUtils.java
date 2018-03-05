@@ -175,36 +175,33 @@ public class RedisClusterUtils {
      */
     public static synchronized boolean transaction(RedisClusterProxy jedisCluster, RedisCallBack redisCallBack) {
         boolean result;
-        Jedis redis = null;
         try {
-            JedisSlotBasedConnectionHandlerProxy connectionHandler = jedisCluster.getConnectionHandler();
-
-            redis = connectionHandler.getConnection();
-
             // TODO 改为可以识别散列方法
             // TODO 可以优化为动态代理
-            result = redisCallBack.MultiAndExec(redis, connectionHandler);
+            result = redisCallBack.MultiAndExec(jedisCluster);
 
         } catch (Exception e) {
             result = false;
             e.printStackTrace();
         } finally {
-            if (redis != null) {
-                redis.close();
-            }
         }
         return result;
     }
 
     abstract public static class RedisCallBack {
 
-        boolean MultiAndExec(Jedis redis, JedisSlotBasedConnectionHandlerProxy connectionHandler) {
+        boolean MultiAndExec(RedisClusterProxy jedisCluster) {
+            JedisSlotBasedConnectionHandlerProxy connectionHandler = jedisCluster.getConnectionHandler();
+            Jedis m$ = getMasterNode(jedisCluster);
+            if (null == m$ || !m$.isConnected()) {
+                return false;
+            }
             boolean result = true;
             try {
                 List<String> keys = setKey();
-                allotSlot(redis, keys, connectionHandler);
-                redis.asking();
-                Transaction transaction = redis.multi();
+                allotSlot(m$, jedisCluster, keys, connectionHandler);
+                // redis.asking(); // if has used clusterImporting or clusterMigrating to change slots, you need asking befor operation in client.
+                Transaction transaction = m$.multi();
                 OnMultiAndExecListener(transaction);
                 transaction.exec();
             } catch (Exception e) {
@@ -215,31 +212,42 @@ public class RedisClusterUtils {
         }
 
         /**
+         * get a master node
+         *
+         * @param jedisCluster
+         * @return
+         */
+        private Jedis getMasterNode(RedisClusterProxy jedisCluster) {
+            Map<String, JedisPool> jps$ = jedisCluster.getClusterNodes();
+            for (JedisPool i$ : jps$.values()) {
+                Jedis redis = i$.getResource();
+                String nodesInfo = redis.info();
+                if (nodesInfo.contains("role:master")) {
+                    return redis;
+                }
+            }
+            return null;
+        }
+
+        /**
          * allot slot by key
          *
-         * @param redis
+         * @param t$
+         * @param jedisCluster
          * @param keys
          * @param connectionHandler
          */
-        void allotSlot(Jedis redis, List<String> keys, JedisSlotBasedConnectionHandlerProxy connectionHandler) {
+        void allotSlot(Jedis t$, RedisClusterProxy jedisCluster, List<String> keys, JedisSlotBasedConnectionHandlerProxy connectionHandler) {
             try {
                 for (String key : keys) {
-                    Integer slot;
-                    slot = JedisClusterCRC16.getSlot(key);
+                    int slot = JedisClusterCRC16.getSlot(key);
 
-                    Jedis s$ = connectionHandler.getConnectionFromSlot(slot);
-                    if (s$ == null || !s$.isConnected() || redis == null || !redis.isConnected()) {
-                        logger.warn(s$ + " is cloesd ! or" + redis + " is closed !");
-                        return;
+                    Map<String, JedisPool> jps$ = jedisCluster.getClusterNodes();
+                    for (JedisPool jedisPool : jps$.values()) {
+                        Jedis redis = jedisPool.getResource();
+                        String result = redis.clusterSetSlotNode(slot, RedisHelper.getNodeId(t$.clusterNodes()));
+                        logger.info("ask node:" + RedisHelper.getNodeId(redis.clusterNodes()) + " , slot:" + slot + " to node:" + RedisHelper.getNodeId(t$.clusterNodes()) + " is " + result);
                     }
-
-                    if (!RedisHelper.getNodeId(s$.clusterNodes()).equals(RedisHelper.getNodeId(redis.clusterNodes()))) {
-                        String r1$ = redis.clusterSetSlotImporting(slot, RedisHelper.getNodeId(s$.clusterNodes()));
-                        logger.info("importing is " + r1$ + "!");
-                        String r2$ = s$.clusterSetSlotMigrating(slot, RedisHelper.getNodeId(redis.clusterNodes()));
-                        logger.info("migrating is " + r2$ + "!");
-                    }
-
                 }
             } catch (Exception e) {
                 e.printStackTrace();

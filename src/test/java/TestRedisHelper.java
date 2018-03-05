@@ -24,8 +24,8 @@ public class TestRedisHelper {
 
     @Before
     public synchronized void before() {
-        //jedisCluster = RedisClusterUtils.getRedisClusterInstance("127.0.0.1:7001,127.0.0.1:7002,127.0.0.1:7003,127.0.0.1:7004,127.0.0.1:7005,127.0.0.1:7006");
-        jedisCluster = RedisClusterUtils.getRedisClusterInstance("127.0.0.1:7001,127.0.0.1:7002,127.0.0.1:7003");
+        jedisCluster = RedisClusterUtils.getRedisClusterInstance("127.0.0.1:7001,127.0.0.1:7002,127.0.0.1:7003,127.0.0.1:7004,127.0.0.1:7005,127.0.0.1:7006");
+        //jedisCluster = RedisClusterUtils.getRedisClusterInstance("127.0.0.1:7001,127.0.0.1:7002,127.0.0.1:7003");
         Map<String, JedisPool> clusterNodes = jedisCluster.getClusterNodes();
         Set<String> hostAndPorts = clusterNodes.keySet();
         log.info(hostAndPorts);
@@ -86,7 +86,6 @@ public class TestRedisHelper {
     @Test
     public void testCall() {
         String result = RedisClusterUtils.call(jedisCluster, "return redis.call('TIME')");
-
         System.out.println(result);
     }
 
@@ -186,7 +185,7 @@ public class TestRedisHelper {
 
     @Test
     public void testMoveSlot() {
-        boolean result = RedisClusterUtils.moveSlot(jedisCluster, 7785, "127.0.0.1:7002", "127.0.0.1:7003");
+        boolean result = RedisClusterUtils.moveSlot(jedisCluster, 7785, "127.0.0.1:7001", "127.0.0.1:7002");
         System.out.println(result);
     }
 
@@ -201,5 +200,13 @@ public class TestRedisHelper {
         List<NodeSlots> result = RedisClusterUtils.slots(jedisCluster);
         System.out.println(result);
     }
+
+    @Test
+    public void testGet() {
+        System.out.println(jedisCluster.get("a1"));
+        System.out.println(jedisCluster.get("a2"));
+        System.out.println(jedisCluster.get("a3"));
+    }
+
 
 }

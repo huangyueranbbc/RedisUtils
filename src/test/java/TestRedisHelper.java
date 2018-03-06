@@ -8,6 +8,7 @@ import org.junit.Before;
 import org.junit.Test;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
+import redis.clients.util.Slowlog;
 
 import java.util.*;
 
@@ -212,6 +213,45 @@ public class TestRedisHelper {
         System.out.println(keysInSlot);
     }
 
+    @Test
+    public void testDump() {
+        byte[] result = RedisClusterUtils.dump(jedisCluster, "a1");
+        assert result != null;
+        System.out.println(new String(result));
+    }
 
+    @Test
+    public void testRestore() {
+        boolean result = RedisClusterUtils.restore(jedisCluster, "gg1", RedisClusterUtils.dump(jedisCluster, "a1"));
+        System.out.println(result);
+    }
+
+
+    @Test
+    public void testSlowlogGet() {
+        List<Slowlog> result = RedisClusterUtils.slowlogGet(jedisCluster);
+        assert result != null;
+        for (Slowlog slowlog : result) {
+            System.out.println(slowlog.getId() + "-" + slowlog.getTimeStamp() + "-" + slowlog.getExecutionTime() + "-" + slowlog.getArgs());
+        }
+    }
+
+    @Test
+    public void testSlowlogLen() {
+        long result = RedisClusterUtils.slowlogLen(jedisCluster);
+        System.out.println(result);
+    }
+
+    @Test
+    public void testSunion() {
+        Set<String> result = RedisClusterUtils.sunion(jedisCluster, "sb2", "sb3", "sb1", "sa1");
+        System.out.println(result);
+    }
+
+    @Test
+    public void testSunionstore() {
+        boolean result = RedisClusterUtils.sunionstore(jedisCluster, "sunb1", "sb3", "sb1", "sb2");
+        System.out.println(result);
+    }
 
 }

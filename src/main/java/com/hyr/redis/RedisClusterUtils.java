@@ -6,7 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import redis.clients.jedis.*;
 import redis.clients.util.JedisClusterCRC16;
-import redis.clients.util.RedisOutputStream;
+import redis.clients.util.Slowlog;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -884,7 +884,7 @@ public class RedisClusterUtils {
      * @param key
      * @return
      */
-    private static int getSlotByKey(RedisClusterProxy jedisCluster, String key) {
+    public static int getSlotByKey(RedisClusterProxy jedisCluster, String key) {
         Map<String, JedisPool> jps$ = jedisCluster.getClusterNodes();
         for (JedisPool j$ : jps$.values()) {
             Long slot = j$.getResource().clusterKeySlot(key);
@@ -892,6 +892,155 @@ public class RedisClusterUtils {
         }
         return -1;
     }
+
+    /**
+     * command : dump
+     * Get the value after the serialization of the specified Key
+     *
+     * @param jedisCluster
+     * @param key
+     * @return
+     */
+    public static byte[] dump(RedisClusterProxy jedisCluster, String key) {
+        Jedis r$ = null;
+        try {
+            int slot = getSlotByKey(jedisCluster, key);
+            r$ = jedisCluster.getConnectionHandler().getConnectionFromSlot(slot);
+            return r$.dump(key);
+        } catch (Exception e) {
+            logger.error("cluster dump is error. key:" + key, e);
+        } finally {
+            if (null != r$) {
+                r$.close();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * command : restore
+     * De serialize a given serialized value and associate it with a given key.
+     *
+     * @param jedisCluster
+     * @param key
+     * @return
+     */
+    public static boolean restore(RedisClusterProxy jedisCluster, String key, byte[] bytes) {
+        boolean result = true;
+        Jedis r$ = null;
+        try {
+            int slot = getSlotByKey(jedisCluster, key);
+            r$ = jedisCluster.getConnectionHandler().getConnectionFromSlot(slot);
+            String r = r$.restore(key, 0, bytes);
+            logger.debug("cluster restore is" + r);
+        } catch (Exception e) {
+            result = false;
+            logger.error("cluster restore is error. key:" + key, e);
+        } finally {
+            if (null != r$) {
+                r$.close();
+            }
+        }
+        return result;
+    }
+
+    /**
+     * command : slowlogGet
+     *
+     * @param jedisCluster
+     * @return
+     */
+    public static List<Slowlog> slowlogGet(RedisClusterProxy jedisCluster) {
+        List<Slowlog> result = new ArrayList<Slowlog>();
+        Jedis redis = null;
+        try {
+            Map<String, JedisPool> jps$ = jedisCluster.getClusterNodes();
+            for (JedisPool j$ : jps$.values()) {
+                redis = j$.getResource();
+                List<Slowlog> slowlogs = redis.slowlogGet();
+                result.addAll(slowlogs);
+            }
+            logger.debug("cluster slowlogGet is OK. size:" + result.size());
+            return result;
+        } catch (Exception e) {
+            logger.error("cluster slowlogGet is error.", e);
+        } finally {
+            if (redis != null) {
+                redis.close();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * command : slowlogLen
+     *
+     * @param jedisCluster
+     * @return
+     */
+    public static long slowlogLen(RedisClusterProxy jedisCluster) {
+        long result = 0;
+        Jedis redis = null;
+        try {
+            Map<String, JedisPool> jps$ = jedisCluster.getClusterNodes();
+            for (JedisPool j$ : jps$.values()) {
+                redis = j$.getResource();
+                result += redis.slowlogLen();
+            }
+            logger.debug("cluster slowlogLen is OK.");
+            return result;
+        } catch (Exception e) {
+            logger.error("cluster slowlogLen is error.", e);
+        } finally {
+            if (redis != null) {
+                redis.close();
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * command : sunion
+     *
+     * @param jedisCluster
+     * @return
+     */
+    public static Set<String> sunion(RedisClusterProxy jedisCluster, String... keys) {
+        Set<String> result = new HashSet<String>();
+        try {
+            for (String key : keys) {
+                Set<String> m$ = jedisCluster.smembers(key);
+                result.addAll(m$);
+            }
+            logger.debug("cluster sunion is OK.");
+        } catch (Exception e) {
+            logger.error("cluster sunion is error. keys:" + Arrays.toString(keys), e);
+        }
+        return result;
+    }
+
+
+    /**
+     * command : sunionstore
+     *
+     * @param jedisCluster
+     * @param targetKey
+     * @param sourceKeys
+     * @return
+     */
+    public static boolean sunionstore(RedisClusterProxy jedisCluster, String targetKey, String... sourceKeys) {
+        boolean result = true;
+        try {
+            Set<String> values = sunion(jedisCluster, sourceKeys);
+            Long count = jedisCluster.sadd(targetKey, values.toArray(new String[]{}));
+            logger.debug("cluster sunionstore is OK. count:" + count);
+        } catch (Exception e) {
+            result = false;
+            logger.error("cluster sunionstore is error. targetKey:" + targetKey + ",sourceKeys:" + Arrays.toString(sourceKeys), e);
+        }
+        return result;
+    }
+
 
 }
 

@@ -62,17 +62,17 @@ public class TestRedisHelper {
 
             public List<String> setKey() {
                 List<String> keys = new ArrayList<String>(); // set all keys to allot slot
-                keys.add("a1");
-                keys.add("a2");
-                keys.add("a3");
+                keys.add("a4");
+                keys.add("a5");
+                keys.add("a6");
                 return keys;
             }
 
             public void OnMultiAndExecListener(Transaction transaction) {
                 try {
-                    transaction.set("a1", "b5");
-                    transaction.set("a2", "b2");
-                    transaction.set("a3", "b3");
+                    transaction.set("a4", "b5");
+                    transaction.set("a5", "b2");
+                    transaction.set("a6", "b3");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -80,7 +80,6 @@ public class TestRedisHelper {
             }
         });
         System.out.println(result);
-
     }
 
     @Test
@@ -185,7 +184,7 @@ public class TestRedisHelper {
 
     @Test
     public void testMoveSlot() {
-        boolean result = RedisClusterUtils.moveSlot(jedisCluster, 7785, "127.0.0.1:7001", "127.0.0.1:7002");
+        boolean result = RedisClusterUtils.moveSlot(jedisCluster, 7785, "127.0.0.1:7002");
         System.out.println(result);
     }
 
@@ -208,11 +207,11 @@ public class TestRedisHelper {
     }
 
     @Test
-    public void testGet() {
-        System.out.println(jedisCluster.get("a1"));
-        System.out.println(jedisCluster.get("a2"));
-        System.out.println(jedisCluster.get("a3"));
+    public void testGetKeysInSlot() {
+        List<String> keysInSlot = RedisClusterUtils.getKeysInSlot(jedisCluster, 7785, 100);
+        System.out.println(keysInSlot);
     }
+
 
 
 }

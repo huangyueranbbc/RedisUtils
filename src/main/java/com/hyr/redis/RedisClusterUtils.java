@@ -140,7 +140,7 @@ public class RedisClusterUtils {
                     logger.error("cluster nodes is error.", e);
                 } finally {
                     if (jedis != null) {
-                        jedis.close();//用完一定要close这个链接！！！
+                        jedis.close();
                     }
                 }
             }
@@ -1040,6 +1040,66 @@ public class RedisClusterUtils {
         }
         return result;
     }
+
+    /**
+     * command : monitor
+     *
+     * @param jedisCluster
+     * @return
+     */
+    public static synchronized String monitor(RedisClusterProxy jedisCluster, final JedisMonitor monitor, long time) {
+        try {
+            Map<String, JedisPool> clusterNodes = jedisCluster.getClusterNodes();
+            for (String node : clusterNodes.keySet()) {
+                JedisPool i$ = clusterNodes.get(node);
+                final Jedis redis = i$.getResource();
+                new Thread(new Runnable() {
+                    public void run() {
+                        redis.monitor(monitor);
+                    }
+                }).start();
+                System.out.println(node);
+            }
+            Thread.sleep(time);
+        } catch (Exception e) {
+            logger.error("cluster monitor is error.", e);
+        }
+        return "";
+    }
+
+    /**
+     * command : monitor
+     *
+     * @param jedisCluster
+     * @param time
+     * @return
+     */
+    public static synchronized String monitor(RedisClusterProxy jedisCluster, long time) {
+        final JedisMonitor monitor = new JedisMonitor() {
+            @Override
+            public void onCommand(String s) {
+                System.out.println(s);
+            }
+        };
+        try {
+            Map<String, JedisPool> clusterNodes = jedisCluster.getClusterNodes();
+            for (String node : clusterNodes.keySet()) {
+                JedisPool i$ = clusterNodes.get(node);
+                final Jedis redis = i$.getResource();
+                new Thread(new Runnable() {
+                    public void run() {
+                        redis.monitor(monitor);
+                    }
+                }).start();
+            }
+            Thread.sleep(time);
+        } catch (Exception e) {
+            logger.error("cluster monitor is error.", e);
+        }
+        return "";
+    }
+
+    // time
 
 
 }

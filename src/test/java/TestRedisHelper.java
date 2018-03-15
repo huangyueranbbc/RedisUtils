@@ -2,10 +2,13 @@ import com.hyr.redis.NodeSlots;
 import com.hyr.redis.RedisClusterProxy;
 import com.hyr.redis.RedisClusterUtils;
 import com.hyr.redis.message.ResultMessage;
+import com.sun.org.apache.regexp.internal.RE;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisMonitor;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
 import redis.clients.util.Slowlog;
@@ -253,5 +256,19 @@ public class TestRedisHelper {
         boolean result = RedisClusterUtils.sunionstore(jedisCluster, "sunb1", "sb3", "sb1", "sb2");
         System.out.println(result);
     }
+
+    @Test
+    public void testMonitor() {
+        JedisMonitor monitor = new JedisMonitor() {
+            @Override
+            public void onCommand(String s) {
+                System.out.println(s);
+            }
+        };
+        RedisClusterUtils.monitor(jedisCluster,monitor,1000000);
+        RedisClusterUtils.monitor(jedisCluster,1000000);
+    }
+
+
 
 }

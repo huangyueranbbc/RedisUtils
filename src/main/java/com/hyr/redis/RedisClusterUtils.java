@@ -1078,7 +1078,6 @@ public class RedisClusterUtils {
         final JedisMonitorProxy monitor = new JedisMonitorProxy() {
             public void onCommand(String command, String hostAndPort) {
                 logger.info(hostAndPort + "--" + command);
-                System.out.println(hostAndPort + "--" + command);
             }
 
         };

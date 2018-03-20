@@ -1,13 +1,12 @@
+import com.hyr.redis.JedisMonitorProxy;
 import com.hyr.redis.NodeSlots;
 import com.hyr.redis.RedisClusterProxy;
 import com.hyr.redis.RedisClusterUtils;
 import com.hyr.redis.message.ResultMessage;
-import com.sun.org.apache.regexp.internal.RE;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisMonitor;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
@@ -265,10 +264,15 @@ public class TestRedisHelper {
                 System.out.println(s);
             }
         };
-        RedisClusterUtils.monitor(jedisCluster,monitor,1000000);
-        RedisClusterUtils.monitor(jedisCluster,1000000);
-    }
+        JedisMonitorProxy monitorProxy = new JedisMonitorProxy() {
+            public void onCommand(String command, String hostAndPort) {
+                System.out.println(hostAndPort + "--" + command);
+            }
 
+        };
+        //RedisClusterUtils.monitor(jedisCluster,monitorProxy,1000000);
+        RedisClusterUtils.monitor(jedisCluster, 1000000);
+    }
 
 
 }

@@ -10,6 +10,7 @@ import redis.clients.util.Slowlog;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.ref.Reference;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -1047,7 +1048,7 @@ public class RedisClusterUtils {
      * @param jedisCluster
      * @return
      */
-    public static synchronized String monitor(RedisClusterProxy jedisCluster, final JedisMonitor monitor, long time) {
+    public static synchronized void monitor(RedisClusterProxy jedisCluster, final JedisMonitor monitor, long time) {
         try {
             Map<String, JedisPool> clusterNodes = jedisCluster.getClusterNodes();
             for (String node : clusterNodes.keySet()) {
@@ -1064,7 +1065,6 @@ public class RedisClusterUtils {
         } catch (Exception e) {
             logger.error("cluster monitor is error.", e);
         }
-        return "";
     }
 
     /**
@@ -1074,12 +1074,13 @@ public class RedisClusterUtils {
      * @param time
      * @return
      */
-    public static synchronized String monitor(RedisClusterProxy jedisCluster, long time) {
-        final JedisMonitor monitor = new JedisMonitor() {
-            @Override
-            public void onCommand(String s) {
-                System.out.println(s);
+    public static synchronized void monitor(final RedisClusterProxy jedisCluster, long time) {
+        final JedisMonitorProxy monitor = new JedisMonitorProxy() {
+            public void onCommand(String command, String hostAndPort) {
+                logger.info(hostAndPort + "--" + command);
+                System.out.println(hostAndPort + "--" + command);
             }
+
         };
         try {
             Map<String, JedisPool> clusterNodes = jedisCluster.getClusterNodes();
@@ -1096,7 +1097,6 @@ public class RedisClusterUtils {
         } catch (Exception e) {
             logger.error("cluster monitor is error.", e);
         }
-        return "";
     }
 
     // time

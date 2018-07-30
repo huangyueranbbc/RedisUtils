@@ -48,8 +48,37 @@ public class TestRedisHelper {
     }
 
     @Test
+    public void testInfos() {
+        String result = RedisClusterUtils.info(jedisCluster);
+        System.out.println(result);
+    }
+
+    @Test
     public void testInfo() {
         String result = RedisClusterUtils.info(jedisCluster);
+        System.out.println(result);
+        result = RedisClusterUtils.server(jedisCluster);
+        System.out.println(result);
+        result = RedisClusterUtils.clients(jedisCluster);
+        System.out.println(result);
+        result = RedisClusterUtils.memory(jedisCluster);
+        System.out.println(result);
+        result = RedisClusterUtils.persistence(jedisCluster);
+        System.out.println(result);
+        result = RedisClusterUtils.state(jedisCluster);
+        System.out.println(result);
+        result = RedisClusterUtils.cpu(jedisCluster);
+        System.out.println(result);
+        result = RedisClusterUtils.cluster(jedisCluster);
+        System.out.println(result);
+        result = RedisClusterUtils.keyspace(jedisCluster);
+        System.out.println(result);
+    }
+
+    @Test
+    public void testInfoSection() {
+        String section="memory"; // server clients memory persistence state cpu cluster keyspace
+        String result = RedisClusterUtils.info(jedisCluster,section);
         System.out.println(result);
     }
 

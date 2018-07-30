@@ -10,7 +10,6 @@ import redis.clients.util.Slowlog;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.ref.Reference;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -118,6 +117,122 @@ public class RedisClusterUtils {
     }
 
     /**
+     * command : cluster info by section
+     *
+     * @param jedisCluster
+     * @return
+     */
+    public static synchronized String info(RedisClusterProxy jedisCluster, String section) {
+        Map<String, JedisPool> clusterNodes = jedisCluster.getClusterNodes();
+        StringBuilder sb = new StringBuilder();
+        for (String node : clusterNodes.keySet()) {
+            JedisPool jedisPool = clusterNodes.get(node);
+            if (jedisPool != null && !jedisPool.isClosed()) {
+                Jedis jedis = jedisPool.getResource();
+                try {
+                    String info = jedis.info(section);
+                    sb.append(info).append("=====================================================\n").append("\n");
+                } catch (Exception e) {
+                    logger.error("cluster info error!", e);
+                } finally {
+                    if (jedis != null) {
+                        jedis.close();
+                    }
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * command : get cluster server memory info
+     *
+     * @param jedisCluster
+     * @return
+     */
+    public static synchronized String server(RedisClusterProxy jedisCluster) {
+        String section = "server";
+        return info(jedisCluster, section);
+    }
+
+    /**
+     * command : get cluster clients info
+     *
+     * @param jedisCluster
+     * @return
+     */
+    public static synchronized String clients(RedisClusterProxy jedisCluster) {
+        String section = "clients";
+        return info(jedisCluster, section);
+    }
+
+    /**
+     * command : get cluster info by section
+     *
+     * @param jedisCluster
+     * @return
+     */
+    public static synchronized String memory(RedisClusterProxy jedisCluster) {
+        String section = "memory";
+        return info(jedisCluster, section);
+    }
+
+    /**
+     * command : get cluster persistence info
+     *
+     * @param jedisCluster
+     * @return
+     */
+    public static synchronized String persistence(RedisClusterProxy jedisCluster) {
+        String section = "persistence";
+        return info(jedisCluster, section);
+    }
+
+    /**
+     * command : get cluster state info
+     *
+     * @param jedisCluster
+     * @return
+     */
+    public static synchronized String state(RedisClusterProxy jedisCluster) {
+        String section = "state";
+        return info(jedisCluster, section);
+    }
+
+    /**
+     * command : get cluster cpu info
+     *
+     * @param jedisCluster
+     * @return
+     */
+    public static synchronized String cpu(RedisClusterProxy jedisCluster) {
+        String section = "cpu";
+        return info(jedisCluster, section);
+    }
+
+    /**
+     * command : get cluster cluster info
+     *
+     * @param jedisCluster
+     * @return
+     */
+    public static synchronized String cluster(RedisClusterProxy jedisCluster) {
+        String section = "cluster";
+        return info(jedisCluster, section);
+    }
+
+    /**
+     * command : get cluster keyspace info
+     *
+     * @param jedisCluster
+     * @return
+     */
+    public static synchronized String keyspace(RedisClusterProxy jedisCluster) {
+        String section = "keyspace";
+        return info(jedisCluster, section);
+    }
+
+    /**
      * command : cluster nodes
      *
      * @param jedisCluster
@@ -221,7 +336,7 @@ public class RedisClusterUtils {
             Map<String, JedisPool> jps$ = jedisCluster.getClusterNodes();
             for (JedisPool i$ : jps$.values()) {
                 Jedis redis = i$.getResource();
-                String nodesInfo = redis.info();
+                String nodesInfo = redis.info("replication");
                 if (nodesInfo.contains("role:master")) {
                     return redis;
                 }
@@ -386,7 +501,7 @@ public class RedisClusterUtils {
                 JedisPool jedisPool = clusterNodes.get(node);
                 if (jedisPool != null && !jedisPool.isClosed()) {
                     redis = jedisPool.getResource();
-                    String nodesInfo = redis.info();
+                    String nodesInfo = redis.info("replication");
                     if (nodesInfo.contains("role:master")) {
                         redis.flushAll();
                     }
@@ -741,7 +856,7 @@ public class RedisClusterUtils {
 
                     }
                 };
-                String nodesInfo = redis.info();
+                String nodesInfo = redis.info("replication");
                 if (nodesInfo.contains("role:master")) {
                     dbSize += redis.dbSize();
                 }

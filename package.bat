@@ -16,7 +16,7 @@ echo version: %version%  datetime: %date% %time% >  src\main\resources\ver_%dver
 @rem maven 打包
 call mvn clean package -Dmaven.test.skip=true
 
-@rem 特殊处理upload版本号文件
+@rem 特殊处理版本号文件
 copy RedisUtils\src\main\resources\ver_*.txt target\
 
 rem 清空build

@@ -24,5 +24,3 @@ JAVA_OPTS=""
 GC_OPTS="
 
 nohup java -jar ${JAVA_OPTS} ${GC_OPTS} ${JAR_PATH}/${APP_NAME}.jar ${OPERATION_TYPE} ${REDIS_HOST} >>/dev/null 2>&1 &
-
-esac

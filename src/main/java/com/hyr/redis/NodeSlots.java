@@ -2,7 +2,7 @@ package com.hyr.redis;
 
 /*******************************************************************************
  * @date 2018-03-02 下午 4:55
- * @author: <a href=mailto:huangyr@bonree.com>黄跃然</a>
+ * @author: <a href=mailto:>黄跃然</a>
  * @Description: cluster node slots info
  ******************************************************************************/
 public class NodeSlots {

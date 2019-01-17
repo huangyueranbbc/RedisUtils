@@ -1,5 +1,9 @@
-package com.hyr.redis;
+package com.utils.redis;
 
+import com.hyr.redis.JedisMonitorProxy;
+import com.hyr.redis.JedisSlotBasedConnectionHandlerProxy;
+import com.hyr.redis.NodeSlots;
+import com.hyr.redis.RedisClusterProxy;
 import com.hyr.redis.help.RedisHelper;
 import com.hyr.redis.message.ResultMessage;
 import org.apache.commons.lang3.StringUtils;
@@ -13,9 +17,11 @@ import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static com.hyr.redis.help.RedisHelper.getHostAndPort;
+
 /*******************************************************************************
  * @date 2018-02-28 下午 5:45
- * @author: <a href=mailto:huangyr@bonree.com>黄跃然</a>
+ * @author: <a href=mailto:>黄跃然</a>
  * @Description: 集群环境redis操作指令
  ******************************************************************************/
 public class RedisClusterUtils {
@@ -43,20 +49,6 @@ public class RedisClusterUtils {
             jedisCluster = new RedisClusterProxy(hostAndPorts);
         }
         return jedisCluster;
-    }
-
-    /**
-     * @param hostAndPortAddress
-     * @return
-     */
-    private static synchronized Set<HostAndPort> getHostAndPort(String hostAndPortAddress) {
-        Set<HostAndPort> hostAndPorts = new HashSet<HostAndPort>();
-        String[] hostAndPortArray = hostAndPortAddress.split(",");
-        for (String hostAndPort : hostAndPortArray) {
-            String[] hostWithPort = hostAndPort.split(":");
-            hostAndPorts.add(new HostAndPort(hostWithPort[0], Integer.parseInt(hostWithPort[1])));
-        }
-        return hostAndPorts;
     }
 
 

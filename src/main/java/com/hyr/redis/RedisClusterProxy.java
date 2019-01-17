@@ -16,7 +16,7 @@ import java.util.Set;
 
 /*******************************************************************************
  * @date 2018-02-28 下午 5:45
- * @author: <a href=mailto:huangyr@bonree.com>黄跃然</a>
+ * @author: <a href=mailto:>黄跃然</a>
  * @Description:
  ******************************************************************************/
 public class RedisClusterProxy implements JedisCommands, BasicCommands, Closeable {

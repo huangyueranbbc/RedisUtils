@@ -5,7 +5,7 @@ import java.util.List;
 
 /*******************************************************************************
  * @date 2018-03-01 下午 3:08
- * @author: <a href=mailto:huangyr@bonree.com>黄跃然</a>
+ * @author: <a href=mailto:>黄跃然</a>
  * @Description:
  ******************************************************************************/
 public class ResultMessage {

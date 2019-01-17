@@ -24,7 +24,7 @@ public class RedisServer {
 
             switch (type){
                 case 1:
-                    RedisDeleteDataService.main(new String[]{args[1]});
+                    RedisDeleteDataService.main(new String[]{address});
                     break;
                     default:
                         printUsage();

@@ -52,7 +52,7 @@ public class VersionInfo {
     }
 
     /**
-     * get browser version
+     * get version
      *
      * @return
      */
